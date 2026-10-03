@@ -9,8 +9,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Zip ac
-        run: unzip -q PhysicsLauncher.zip
+      - name: Dosyalari bul ve ac
+        run: |
+          ls -la
+          for z in *.zip; do
+            if [ -f "$z" ]; then unzip -q -o "$z"; fi
+          done
+          G=$(find . -name gradlew -not -path "./.git/*" | head -n1)
+          if [ -z "$G" ]; then echo "gradlew bulunamadi"; ls -R | head -50; exit 1; fi
+          echo "PROJ=$(dirname "$G")" >> "$GITHUB_ENV"
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -18,7 +25,7 @@ jobs:
       - name: Lisanslari kabul et
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses || true
       - name: Derle
-        working-directory: PhysicsLauncher
+        working-directory: ${{ env.PROJ }}
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
@@ -26,4 +33,4 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "apk-${{ github.run_number }}" PhysicsLauncher/app/build/outputs/apk/debug/app-debug.apk --repo ${{ github.repository }} --title "Fizik Launcher #${{ github.run_number }}" --notes "Debug APK"
+          gh release create "apk-${{ github.run_number }}" "${{ env.PROJ }}/app/build/outputs/apk/debug/app-debug.apk" --repo ${{ github.repository }} --title "Fizik Launcher #${{ github.run_number }}" --notes "Debug APK"
